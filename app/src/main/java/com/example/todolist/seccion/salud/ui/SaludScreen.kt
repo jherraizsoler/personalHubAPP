@@ -35,14 +35,10 @@ fun SaludScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { CustomTopAppBar(navController = navController, title = "Salud") },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
                 FloatingActionButton(onClick = { showAddPastillaDialog = true }, modifier = Modifier.padding(bottom = 8.dp)) {
                     Text("Pill")
-                }
-                FloatingActionButton(onClick = { showAddComidaDialog = true }) {
-                    Text("Food")
                 }
             }
         },
@@ -59,12 +55,6 @@ fun SaludScreen(
                     PastillaCard(pastilla = pastilla, onEliminarClick = { saludViewModel.eliminarPastilla(pastilla) })
                 }
             }
-            Text(text = "Registro de Comidas", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(16.dp))
-            LazyColumn(modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 16.dp)) {
-                items(saludViewModel.registrosAlimentacion) { registro ->
-                    RegistroComidaItem(registro = registro, onEliminarClick = { saludViewModel.eliminarRegistroAlimentacion(registro) })
-                }
-            }
         }
     }
 
@@ -72,13 +62,6 @@ fun SaludScreen(
         AddPastillaDialog(onDismiss = { showAddPastillaDialog = false }, onConfirm = { nombre, dosis, frecuencia ->
             saludViewModel.añadirPastilla(nombre, dosis, frecuencia)
             showAddPastillaDialog = false
-        })
-    }
-
-    if (showAddComidaDialog) {
-        AddComidaDialog(onDismiss = { showAddComidaDialog = false }, onConfirm = { comida, calorias, notas ->
-            saludViewModel.añadirRegistroAlimentacion(comida, System.currentTimeMillis(), calorias, notas)
-            showAddComidaDialog = false
         })
     }
 }

@@ -12,8 +12,6 @@ import com.example.todolist.seccion.estudio.data.RegistroEstudio
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.*
-import kotlin.concurrent.timer
 
 class EstudioViewModel(private val context: Context) : ViewModel() {
 
@@ -23,12 +21,17 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
     val registros: List<RegistroEstudio> = _registros
 
     private var timerJob: Job? = null
-    private val _tiempoRestante = mutableStateOf(25 * 60L)
+
+    private val _tiempoRestante = mutableStateOf(25 * 60_000L)
     val tiempoRestante: State<Long> = _tiempoRestante
+
     private val _isRunning = mutableStateOf(false)
     val isRunning: State<Boolean> = _isRunning
+
     private val _isTrabajo = mutableStateOf(true)
     val isTrabajo: State<Boolean> = _isTrabajo
+
+    private var tiempoInicialSesion = 25 * 60_000L // para calcular sesiones parciales
 
     init {
         cargarRegistros()
@@ -36,40 +39,54 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
 
     private fun cargarRegistros() {
         viewModelScope.launch {
-            val loadedRecords = loadData<List<RegistroEstudio>>(context, FILENAME)
-            loadedRecords?.let {
-                _registros.addAll(it)
-            }
+            val loadedRecords = loadData(context, FILENAME, emptyList<RegistroEstudio>())
+            _registros.clear()
+            _registros.addAll(loadedRecords)
         }
     }
 
     private fun guardarRegistros() {
         viewModelScope.launch {
-            saveData(context, FILENAME, _registros)
+            // Convierte el SnapshotStateList a una List antes de guardarlo.
+            saveData(context, FILENAME, _registros.toList())
         }
     }
 
     fun iniciarTemporizador() {
         if (!isRunning.value) {
             _isRunning.value = true
+            tiempoInicialSesion = _tiempoRestante.value
             timerJob = viewModelScope.launch {
-                while (_tiempoRestante.value > 0) {
+                while (_tiempoRestante.value > 0 && _isRunning.value) {
                     delay(1000)
-                    _tiempoRestante.value--
+                    _tiempoRestante.value -= 1000
                 }
-                onTemporizadorTerminado()
+                if (_isRunning.value) {
+                    onTemporizadorTerminado()
+                }
             }
         }
     }
 
     fun pausarTemporizador() {
+        if (_isRunning.value) {
+            // Si es trabajo y no hemos pausado en el segundo 0
+            if (_isTrabajo.value && _tiempoRestante.value < tiempoInicialSesion) {
+                val minutosTrabajados =
+                    ((tiempoInicialSesion - _tiempoRestante.value) / 60_000).toInt()
+                if (minutosTrabajados > 0) {
+                    añadirRegistroEstudio(minutosTrabajados, "Sesión interrumpida")
+                }
+            }
+        }
         _isRunning.value = false
         timerJob?.cancel()
+        guardarRegistros()
     }
 
     fun reiniciarTemporizador() {
         pausarTemporizador()
-        _tiempoRestante.value = if (_isTrabajo.value) 25 * 60L else 5 * 60L
+        _tiempoRestante.value = if (_isTrabajo.value) 25 * 60_000L else 5 * 60_000L
     }
 
     private fun onTemporizadorTerminado() {
@@ -77,10 +94,10 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
         if (_isTrabajo.value) {
             añadirRegistroEstudio(25, "Sesión de estudio")
             _isTrabajo.value = false
-            _tiempoRestante.value = 5 * 60L
+            _tiempoRestante.value = 5 * 60_000L
         } else {
             _isTrabajo.value = true
-            _tiempoRestante.value = 25 * 60L
+            _tiempoRestante.value = 25 * 60_000L
         }
     }
 

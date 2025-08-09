@@ -9,41 +9,43 @@ import kotlinx.serialization.encodeToString
 import java.io.File
 import java.io.IOException
 
-// Usamos el 'Json' object para la serialización y deserialización
 val json = Json { prettyPrint = true }
 
-// Guarda los datos en un archivo JSON
+/**
+ * Guarda un objeto en un archivo JSON en la memoria interna de la app.
+ */
 inline suspend fun <reified T : Any> saveData(context: Context, filename: String, data: T) {
     val file = File(context.filesDir, filename)
     try {
         withContext(Dispatchers.IO) {
-            // Serializa el objeto a String
             val jsonString = json.encodeToString(data)
-            // Escribe el String en el archivo
             file.writeText(jsonString)
         }
     } catch (e: IOException) {
-        // Manejar errores de escritura de archivo
         e.printStackTrace()
     }
 }
 
-// Carga los datos desde un archivo JSON
-inline suspend fun <reified T : Any> loadData(context: Context, filename: String): T? {
+/**
+ * Carga datos desde un archivo JSON.
+ * Si no existe, crea el archivo con el valor por defecto y lo devuelve.
+ */
+inline suspend fun <reified T : Any> loadData(context: Context, filename: String, defaultValue: T): T {
     val file = File(context.filesDir, filename)
+
+    // Si el archivo no existe, crearlo con el valor por defecto
     if (!file.exists()) {
-        return null
+        saveData(context, filename, defaultValue)
+        return defaultValue
     }
+
     return try {
         withContext(Dispatchers.IO) {
-            // Lee el contenido del archivo
             val jsonString = file.readText()
-            // Deserializa el String a un objeto
             json.decodeFromString<T>(jsonString)
         }
     } catch (e: Exception) {
-        // Manejar errores de lectura o deserialización
         e.printStackTrace()
-        null
+        defaultValue
     }
 }

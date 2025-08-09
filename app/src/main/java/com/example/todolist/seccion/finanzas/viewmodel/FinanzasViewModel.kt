@@ -25,16 +25,16 @@ class FinanzasViewModel(private val context: Context) : ViewModel() { // <-- Rec
 
     private fun cargarTransacciones() {
         viewModelScope.launch {
-            val loadedTransactions = loadData<List<Transaccion>>(context, FILENAME)
-            loadedTransactions?.let {
-                _transacciones.addAll(it)
-            }
+            val loadedTransactions = loadData(context, FILENAME, emptyList<Transaccion>())
+            _transacciones.clear()
+            _transacciones.addAll(loadedTransactions)
         }
     }
 
     private fun guardarTransacciones() {
         viewModelScope.launch {
-            saveData(context, FILENAME, _transacciones)
+            // CORRECCIÓN: Convierte la SnapshotStateList a una List antes de guardarla.
+            saveData(context, FILENAME, _transacciones.toList())
         }
     }
 

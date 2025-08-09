@@ -30,7 +30,6 @@ fun EstudioScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { CustomTopAppBar(navController = navController, title = "Estudio") }
     ) { paddingValues ->
         Column(
             modifier = Modifier

@@ -29,10 +29,8 @@ class TodoRepository(val context: Context) {
     }
 
     private suspend fun loadTodos() {
-        val loadedTodos = loadData<List<Task>>(context, FILENAME)
-        loadedTodos?.let {
-            _todos.value = it
-        }
+        val loadedTodos = loadData(context, FILENAME, emptyList<Task>())
+        _todos.value = loadedTodos
     }
 
     private suspend fun saveTodos() {

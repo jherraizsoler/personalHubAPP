@@ -1,11 +1,11 @@
 package com.example.todolist.seccion.finanzas.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.KeyboardOptions // <-- ¡Añade esta importación!
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType // <-- ¡Y esta otra importación!
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.todolist.seccion.finanzas.data.TransaccionCategoria
 import com.example.todolist.seccion.finanzas.data.TransaccionTipo
@@ -22,6 +22,14 @@ fun AddTransaccionDialog(
     var categoria by remember { mutableStateOf(TransaccionCategoria.SALARIO) }
     var expandedTipo by remember { mutableStateOf(false) }
     var expandedCategoria by remember { mutableStateOf(false) }
+
+    // --- CORRECCIÓN 1: Crear una lista de categorías reactiva ---
+    val categoriasDisponibles = remember(tipo) {
+        when (tipo) {
+            TransaccionTipo.INGRESO -> listOf(TransaccionCategoria.SALARIO, TransaccionCategoria.INVERSION)
+            TransaccionTipo.GASTO -> listOf(TransaccionCategoria.GASTO_FIJO, TransaccionCategoria.GASTO_VARIABLE, TransaccionCategoria.OCIO)
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -40,7 +48,6 @@ fun AddTransaccionDialog(
                     onValueChange = { monto = it },
                     label = { Text("Monto") },
                     modifier = Modifier.fillMaxWidth(),
-                    // <-- La sintaxis correcta
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -53,12 +60,8 @@ fun AddTransaccionDialog(
                         value = tipo.name,
                         onValueChange = {},
                         label = { Text("Tipo") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                expanded = expandedTipo
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTipo) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor() // <-- Usar menuAnchor()
                     )
                     ExposedDropdownMenu(
                         expanded = expandedTipo,
@@ -70,6 +73,8 @@ fun AddTransaccionDialog(
                                 onClick = {
                                     tipo = selectionOption
                                     expandedTipo = false
+                                    // --- CORRECCIÓN 2: Actualizar la categoría al cambiar el tipo ---
+                                    categoria = categoriasDisponibles.first()
                                 }
                             )
                         }
@@ -85,18 +90,15 @@ fun AddTransaccionDialog(
                         value = categoria.name,
                         onValueChange = {},
                         label = { Text("Categoría") },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                expanded = expandedCategoria
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategoria) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor() // <-- Usar menuAnchor()
                     )
                     ExposedDropdownMenu(
                         expanded = expandedCategoria,
                         onDismissRequest = { expandedCategoria = false }
                     ) {
-                        TransaccionCategoria.values().forEach { selectionOption ->
+                        // --- CORRECCIÓN 3: Iterar sobre la lista de categorías reactiva ---
+                        categoriasDisponibles.forEach { selectionOption ->
                             DropdownMenuItem(
                                 text = { Text(selectionOption.name) },
                                 onClick = {

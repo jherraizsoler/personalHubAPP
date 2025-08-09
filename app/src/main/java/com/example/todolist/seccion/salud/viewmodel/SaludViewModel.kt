@@ -27,13 +27,14 @@ class SaludViewModel(private val context: Context) : ViewModel() {
 
     private fun cargarEstado() {
         viewModelScope.launch {
-            val loadedState = loadData<SaludState>(context, FILENAME)
-            loadedState?.let {
-                _pastillas.addAll(it.pastillas)
-                _registrosAlimentacion.addAll(it.registrosAlimentacion)
-            }
+            val loadedState = loadData(context, FILENAME, SaludState(emptyList(), emptyList()))
+            _pastillas.clear()
+            _pastillas.addAll(loadedState.pastillas)
+            _registrosAlimentacion.clear()
+            _registrosAlimentacion.addAll(loadedState.registrosAlimentacion)
         }
     }
+
 
     private fun guardarEstado() {
         viewModelScope.launch {
