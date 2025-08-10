@@ -8,21 +8,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.todolist.seccion.estudio.data.Materia
 import com.example.todolist.seccion.estudio.viewmodel.EstudioViewModel
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConfiguracionSesionDialog(
     viewModel: EstudioViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onIniciarSesion: () -> Unit,
+    onRestablecerContador: () -> Unit
 ) {
-    var expandedTiempoEstudio by remember { mutableStateOf(false) }
-    var expandedTiempoDescanso by remember { mutableStateOf(false) }
     var expandedMateria by remember { mutableStateOf(false) }
     var showAgregarMateriaDialog by remember { mutableStateOf(false) }
+    // Nuevo estado para el diálogo de confirmación
+    var showConfirmDeleteDialog by remember { mutableStateOf(false) }
+    var materiaToDelete by remember { mutableStateOf<Materia?>(null) }
 
     val tiempos = listOf(1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60)
 
@@ -33,72 +38,29 @@ fun ConfiguracionSesionDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Configuración de Sesión",
+                    text = "Configuración de la Sesión",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TiempoSpinner(
+                    label = "Tiempo de Estudio",
+                    value = viewModel.tiempoEstudio.value,
+                    onValueChange = { viewModel.tiempoEstudio.value = it },
+                    opciones = tiempos,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
                 )
 
-                // Spinner para el tiempo de estudio
-                ExposedDropdownMenuBox(
-                    expanded = expandedTiempoEstudio,
-                    onExpandedChange = { expandedTiempoEstudio = !expandedTiempoEstudio },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                ) {
-                    TextField(
-                        readOnly = true,
-                        value = "${viewModel.tiempoEstudio.value} min",
-                        onValueChange = {},
-                        label = { Text("Tiempo de Estudio") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTiempoEstudio) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTiempoEstudio,
-                        onDismissRequest = { expandedTiempoEstudio = false }
-                    ) {
-                        tiempos.forEach { tiempo ->
-                            DropdownMenuItem(
-                                text = { Text("$tiempo min") },
-                                onClick = {
-                                    viewModel.tiempoEstudio.value = tiempo
-                                    expandedTiempoEstudio = false
-                                }
-                            )
-                        }
-                    }
-                }
+                TiempoSpinner(
+                    label = "Tiempo de Descanso",
+                    value = viewModel.tiempoDescanso.value,
+                    onValueChange = { viewModel.tiempoDescanso.value = it },
+                    opciones = tiempos,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                )
 
-                // Spinner para el tiempo de descanso
-                ExposedDropdownMenuBox(
-                    expanded = expandedTiempoDescanso,
-                    onExpandedChange = { expandedTiempoDescanso = !expandedTiempoDescanso },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                ) {
-                    TextField(
-                        readOnly = true,
-                        value = "${viewModel.tiempoDescanso.value} min",
-                        onValueChange = {},
-                        label = { Text("Tiempo de Descanso") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTiempoDescanso) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTiempoDescanso,
-                        onDismissRequest = { expandedTiempoDescanso = false }
-                    ) {
-                        tiempos.forEach { tiempo ->
-                            DropdownMenuItem(
-                                text = { Text("$tiempo min") },
-                                onClick = {
-                                    viewModel.tiempoDescanso.value = tiempo
-                                    expandedTiempoDescanso = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Spinner para la materia con botones de agregar y eliminar
                 ExposedDropdownMenuBox(
                     expanded = expandedMateria,
                     onExpandedChange = { expandedMateria = !expandedMateria },
@@ -116,7 +78,6 @@ fun ConfiguracionSesionDialog(
                         expanded = expandedMateria,
                         onDismissRequest = { expandedMateria = false }
                     ) {
-                        // Botón para agregar nueva materia
                         DropdownMenuItem(
                             text = { Text("Agregar nueva materia") },
                             onClick = {
@@ -126,7 +87,7 @@ fun ConfiguracionSesionDialog(
                             trailingIcon = { Icon(Icons.Default.Add, contentDescription = "Agregar materia") }
                         )
                         Divider()
-                        // Lista de materias con botón de eliminar
+                        // Lista de materias existentes con el botón de eliminar
                         viewModel.materias.forEach { materia ->
                             DropdownMenuItem(
                                 text = { Text(materia.nombre) },
@@ -134,8 +95,17 @@ fun ConfiguracionSesionDialog(
                                     viewModel.materiaSeleccionada.value = materia
                                     expandedMateria = false
                                 },
+                                // Añadimos el botón de eliminar aquí
                                 trailingIcon = {
-                                    IconButton(onClick = { viewModel.eliminarMateria(materia.id) }) {
+                                    IconButton(
+                                        onClick = {
+                                            // 1. Guardar la materia a eliminar y mostrar el diálogo
+                                            materiaToDelete = materia
+                                            showConfirmDeleteDialog = true
+                                            expandedMateria = false
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
                                         Icon(Icons.Default.Delete, contentDescription = "Eliminar materia")
                                     }
                                 }
@@ -144,8 +114,18 @@ fun ConfiguracionSesionDialog(
                     }
                 }
 
-                Button(onClick = { onDismiss() }) {
-                    Text("Guardar y cerrar")
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    TextButton(onClick = { onDismiss() }) { Text("Cancelar") }
+                    TextButton(onClick = { onRestablecerContador() }) { Text("Restablecer") }
+                    TextButton(
+                        onClick = { onIniciarSesion(); onDismiss() },
+                        enabled = viewModel.materiaSeleccionada.value != null
+                    ) { Text("Iniciar") }
                 }
             }
         }
@@ -154,10 +134,45 @@ fun ConfiguracionSesionDialog(
     if (showAgregarMateriaDialog) {
         DialogoAgregarMateria(
             onDismiss = { showAgregarMateriaDialog = false },
-            onAgregarMateria = { nombre ->
-                viewModel.añadirMateria(nombre)
+            onAgregarMateria = { nombre, color ->
+                viewModel.agregarMateria(nombre, color)
                 showAgregarMateriaDialog = false
             }
         )
+    }
+
+    // Nuevo diálogo de confirmación para eliminar
+    if (showConfirmDeleteDialog) {
+        materiaToDelete?.let { materia ->
+            AlertDialog(
+                onDismissRequest = {
+                    showConfirmDeleteDialog = false
+                    materiaToDelete = null
+                },
+                title = { Text("Confirmar Eliminación") },
+                text = { Text("¿Estás seguro de que quieres eliminar la materia '${materia.nombre}'?") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.eliminarMateria(materia)
+                            showConfirmDeleteDialog = false
+                            materiaToDelete = null
+                        }
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showConfirmDeleteDialog = false
+                            materiaToDelete = null
+                        }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
     }
 }

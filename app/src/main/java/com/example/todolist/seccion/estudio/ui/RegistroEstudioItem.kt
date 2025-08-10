@@ -1,62 +1,66 @@
-package com.example.todolist.seccion.estudio.ui
+package com.example.todolist.seccion.estudio.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.todolist.seccion.estudio.data.RegistroEstudio
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.todolist.seccion.estudio.viewmodel.EstudioViewModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun RegistroEstudioItem(
-    registro: RegistroEstudio,
-    onEliminarClick: (RegistroEstudio) -> Unit,
-    modifier: Modifier = Modifier
+    sesion: RegistroEstudio,
+    viewModel: EstudioViewModel,
+    onEliminar: (RegistroEstudio) -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-    val formattedDate = dateFormat.format(Date(registro.fecha))
+    val materia = viewModel.obtenerMateriaPorId(sesion.materiaId)
+    val materiaColor = materia?.let { Color(it.color) } ?: Color.LightGray
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp)
+    val horaInicioZoned = Instant.ofEpochMilli(sesion.horaInicio).atZone(ZoneId.systemDefault())
+    val horaFinZoned = Instant.ofEpochMilli(sesion.horaFin).atZone(ZoneId.systemDefault())
+
+    val formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+
+    val horaInicio = formatter.format(horaInicioZoned)
+    val horaFin = formatter.format(horaFinZoned)
+
+    // He cambiado el Card por un Box con un fondo para poder aplicar el color
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(materiaColor)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                // Aquí usamos 'notas' en lugar de 'materia'
                 Text(
-                    text = "Notas: ${registro.notas}",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = materia?.nombre ?: "Materia desconocida",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                // Aquí usamos 'duracionMinutos' que ya está en minutos
-                Text(
-                    text = "Duración: ${registro.duracionMinutos} minutos",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Fecha: $formattedDate",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text("Duración: ${sesion.duracionMinutos} min", style = MaterialTheme.typography.bodyMedium)
+                Text("De $horaInicio a $horaFin", style = MaterialTheme.typography.bodySmall)
             }
-            IconButton(onClick = { onEliminarClick(registro) }) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar registro",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            IconButton(onClick = { onEliminar(sesion) }) {
+                Icon(Icons.Default.Delete, contentDescription = "Eliminar sesión")
             }
         }
     }

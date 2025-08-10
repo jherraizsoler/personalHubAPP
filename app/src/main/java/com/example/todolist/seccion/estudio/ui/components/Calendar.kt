@@ -23,44 +23,52 @@ import java.util.*
 fun Calendar(sessions: List<RegistroEstudio>, onDayClick: (Date) -> Unit) {
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val sessionDates = sessions.map { dateFormat.format(Date(it.fecha)) }.toSet()
+    val sessionDates = sessions.map { dateFormat.format(Date(it.horaInicio)) }.toSet()
+
+    val azulOscuro = Color(0xFF244259)
+
+    Spacer(modifier = Modifier.height(8.dp))
 
     Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-        // Encabezado del mes con botones de navegación
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { currentMonth = currentMonth.apply { add(Calendar.MONTH, -1) } }) {
+
+            IconButton(onClick = { currentMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) } }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Mes anterior")
             }
+            // SimpleDateFormat con Locale("es") ya capitaliza la primera letra del mes.
             Text(
-                text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(currentMonth.time),
+                text = "Sesiones \n" +  SimpleDateFormat("MMMM yyyy", Locale("es")).format(currentMonth.time).capitalizeFirstLetter(),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
             )
-            IconButton(onClick = { currentMonth = currentMonth.apply { add(Calendar.MONTH, 1) } }) {
+            IconButton(onClick = { currentMonth = (currentMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) } }) {
                 Icon(Icons.Default.ArrowForward, contentDescription = "Mes siguiente")
             }
         }
 
-        // Días de la semana
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            val daysOfWeek = listOf("Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb")
+            val daysOfWeek = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
             daysOfWeek.forEach { day ->
                 Text(text = day, modifier = Modifier.size(40.dp), textAlign = TextAlign.Center)
             }
         }
 
-        // Cuadrícula de días
         val daysInMonth = currentMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
         val firstDayOfMonth = (currentMonth.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1) }
-        val startDayOffset = (firstDayOfMonth.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Ajuste para que Lunes sea el primer día
+        val startDayOffset = (firstDayOfMonth.get(Calendar.DAY_OF_WEEK) + 5) % 7
 
-        Column {
-            var dayCount = 1
+        var dayCount = 1
+        Column (
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy((-4).dp)
+        ){
             for (week in 0 until 6) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                     for (dayOfWeek in 0 until 7) {
@@ -76,13 +84,13 @@ fun Calendar(sessions: List<RegistroEstudio>, onDayClick: (Date) -> Unit) {
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(CircleShape)
-                                    .background(if (hasSession) Color.Blue else Color.Transparent)
+                                    .background(if (hasSession) azulOscuro else Color.Transparent)
                                     .clickable { onDayClick(date) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = day.toString(),
-                                    color = Color.Black
+                                    color = if (hasSession) Color.White else MaterialTheme.colorScheme.onBackground
                                 )
                             }
                             dayCount++
@@ -92,4 +100,9 @@ fun Calendar(sessions: List<RegistroEstudio>, onDayClick: (Date) -> Unit) {
             }
         }
     }
+}
+
+// Función de extensión para capitalizar la primera letra de un string.
+fun String.capitalizeFirstLetter(): String {
+    return this.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
 }

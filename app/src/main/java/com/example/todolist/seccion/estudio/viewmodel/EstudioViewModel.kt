@@ -43,6 +43,7 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
 
     private var timerJob: Job? = null
     private var tiempoRestante = mutableStateOf(0L)
+    private var horaInicioSesion: Long = 0L // Nuevo campo para guardar la hora de inicio
 
     init {
         viewModelScope.launch {
@@ -64,16 +65,20 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun añadirMateria(nombre: String) {
-        if (_materias.any { it.nombre == nombre }) return
-        // Asignar un color por defecto (ej. un color fijo o uno aleatorio)
-        _materias.add(Materia(id = UUID.randomUUID().toString(), nombre = nombre, color = 0xFF42A5F5)) // Color azul por defecto
+    fun agregarMateria(nombre: String, color: Long) {
+        val nuevaMateria = Materia(nombre = nombre, color = color)
+        // Usa el método .add() de la lista directamente
+        _materias.add(nuevaMateria)
         guardarMaterias()
     }
 
-    fun eliminarMateria(materiaId: String) {
-        _materias.removeIf { it.id == materiaId }
+    fun eliminarMateria(materia: Materia) {
+        _materias.remove(materia)
         guardarMaterias()
+        // Opcional: si la materia eliminada era la seleccionada, deselecciona
+        if (materiaSeleccionada.value == materia) {
+            materiaSeleccionada.value = null
+        }
     }
 
     // --- Lógica de Registros de Estudio ---
@@ -89,12 +94,14 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun añadirRegistro(materiaId: String) {
+    // Nueva función para añadir un registro completo
+    private fun añadirRegistro(materiaId: String, horaInicio: Long, horaFin: Long) {
         val nuevaSesion = RegistroEstudio(
-            fecha = System.currentTimeMillis(),
             materiaId = materiaId,
             duracionMinutos = tiempoEstudio.value,
-            notas = ""
+            notas = "",
+            horaInicio = horaInicio,
+            horaFin = horaFin
         )
         _registros.add(nuevaSesion)
         guardarRegistros()
@@ -108,7 +115,7 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
     fun obtenerSesionesPorFecha(fecha: Date): List<RegistroEstudio> {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val fechaString = dateFormat.format(fecha)
-        return _registros.filter { dateFormat.format(Date(it.fecha)) == fechaString }
+        return _registros.filter { dateFormat.format(Date(it.horaInicio)) == fechaString }
     }
 
     fun obtenerMateriaPorId(materiaId: String): Materia? {
@@ -118,6 +125,11 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
     // --- Lógica del Temporizador ---
     fun iniciarTemporizador(materia: Materia?, onFinish: () -> Unit) {
         if (!isTimerRunning.value) {
+            if (materia == null) {
+                return
+            }
+
+            horaInicioSesion = System.currentTimeMillis() // Se registra la hora de inicio
             isTimerRunning.value = true
             tiempoRestante.value = (tiempoEstudio.value * 60 * 1000).toLong()
 
@@ -128,9 +140,9 @@ class EstudioViewModel(private val context: Context) : ViewModel() {
                     actualizarUI(tiempoRestante.value)
                 }
 
-                if (materia != null) {
-                    añadirRegistro(materia.id)
-                }
+                // Cuando finaliza el temporizador, se registra la hora de fin y se guarda la sesión
+                val horaFinSesion = System.currentTimeMillis()
+                añadirRegistro(materia.id, horaInicioSesion, horaFinSesion)
                 isTimerRunning.value = false
                 onFinish()
             }
