@@ -1,12 +1,19 @@
 package com.example.todolist.seccion.finanzas.data.repository
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import android.content.Context
+import com.example.todolist.data.loadEncryptedData
+import com.example.todolist.data.saveEncryptedData
+import com.example.todolist.seccion.finanzas.data.Transaccion
 
-class FinanzasRepository {
+class FinanzasRepository(private val context: Context) {
 
-    // Puedes añadir la lógica del repositorio aquí
-    private val _items = MutableStateFlow(listOf("Ejemplo de gasto 1", "Ejemplo de ingreso 2"))
-    val items: StateFlow<List<String>> = _items.asStateFlow()
+    private val FILENAME = "finanzas.json"
+
+    suspend fun loadTransacciones(): List<Transaccion> {
+        return loadEncryptedData(context, FILENAME, emptyList())
+    }
+
+    suspend fun saveTransacciones(transacciones: List<Transaccion>) {
+        saveEncryptedData(context, FILENAME, transacciones)
+    }
 }

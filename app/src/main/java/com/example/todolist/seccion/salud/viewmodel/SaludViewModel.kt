@@ -4,16 +4,15 @@ import android.content.Context
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.data.loadData
-import com.example.todolist.data.saveData
 import com.example.todolist.seccion.salud.data.Pastilla
 import com.example.todolist.seccion.salud.data.RegistroAlimentacion
 import com.example.todolist.seccion.salud.data.SaludState
+import com.example.todolist.seccion.salud.data.repository.SaludRepository
 import kotlinx.coroutines.launch
 
 class SaludViewModel(private val context: Context) : ViewModel() {
 
-    private val FILENAME = "salud.json"
+    private val repository = SaludRepository(context)
 
     private val _pastillas = mutableStateListOf<Pastilla>()
     val pastillas: List<Pastilla> = _pastillas
@@ -27,7 +26,7 @@ class SaludViewModel(private val context: Context) : ViewModel() {
 
     private fun cargarEstado() {
         viewModelScope.launch {
-            val loadedState = loadData(context, FILENAME, SaludState(emptyList(), emptyList()))
+            val loadedState = repository.loadEstado()
             _pastillas.clear()
             _pastillas.addAll(loadedState.pastillas)
             _registrosAlimentacion.clear()
@@ -35,11 +34,10 @@ class SaludViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-
     private fun guardarEstado() {
         viewModelScope.launch {
             val currentState = SaludState(_pastillas, _registrosAlimentacion)
-            saveData(context, FILENAME, currentState)
+            repository.saveEstado(currentState)
         }
     }
 

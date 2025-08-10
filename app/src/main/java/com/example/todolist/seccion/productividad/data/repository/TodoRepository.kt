@@ -3,8 +3,8 @@ package com.example.todolist.seccion.productividad.data.repository
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
-import com.example.todolist.data.loadData
-import com.example.todolist.data.saveData
+import com.example.todolist.data.loadEncryptedData
+import com.example.todolist.data.saveEncryptedData
 import com.example.todolist.seccion.productividad.data.Task
 import com.example.todolist.seccion.productividad.data.TaskType
 import kotlinx.coroutines.CoroutineScope
@@ -29,12 +29,12 @@ class TodoRepository(val context: Context) {
     }
 
     private suspend fun loadTodos() {
-        val loadedTodos = loadData(context, FILENAME, emptyList<Task>())
+        val loadedTodos = loadEncryptedData(context, FILENAME, emptyList<Task>())
         _todos.value = loadedTodos
     }
 
     private suspend fun saveTodos() {
-        saveData(context, FILENAME, _todos.value)
+        saveEncryptedData(context, FILENAME, _todos.value)
     }
 
     suspend fun addItem(newTask: Task) {

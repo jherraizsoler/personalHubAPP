@@ -1,12 +1,19 @@
 package com.example.todolist.seccion.salud.data.repository
 
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import android.content.Context
+import com.example.todolist.data.loadEncryptedData
+import com.example.todolist.data.saveEncryptedData
+import com.example.todolist.seccion.salud.data.SaludState
 
-class SaludRepository {
+class SaludRepository(private val context: Context) {
 
-    // Lógica del repositorio para la sección de salud
-    private val _items = MutableStateFlow(listOf("Beber 2 litros de agua", "Hacer ejercicio"))
-    val items: StateFlow<List<String>> = _items.asStateFlow()
+    private val FILENAME = "salud.json"
+
+    suspend fun loadEstado(): SaludState {
+        return loadEncryptedData(context, FILENAME, SaludState(emptyList(), emptyList()))
+    }
+
+    suspend fun saveEstado(estado: SaludState) {
+        saveEncryptedData(context, FILENAME, estado)
+    }
 }

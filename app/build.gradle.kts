@@ -63,10 +63,22 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
 
+    // Retrofit se encargará de las peticiones de red
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    // converter-gson de la conversión de JSON
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // okhttp para los logs de las peticiones.
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
+
+    // Jetpack Security Almacenar de forma segura en el dispositivo JWT
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+
     // Dependencias para markdown Texto enriquecido
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:0.16.0")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:0.16.0")
 
+    // Jetpack Biometric autenciación por huella dactilar
+    implementation("androidx.biometric:biometric:1.1.0")
 
 
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
