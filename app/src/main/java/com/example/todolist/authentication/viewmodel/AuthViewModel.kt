@@ -1,16 +1,16 @@
 package com.example.todolist.authentication.viewmodel
 
 import android.app.Application
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.authentication.BiometricAuthManager
+import androidx.fragment.app.FragmentActivity
 import com.example.todolist.authentication.LoginRequest
 import com.example.todolist.authentication.RegisterRequest
 import com.example.todolist.authentication.RetrofitClient
 import com.example.todolist.authentication.TokenManager
+import com.example.todolist.authentication.biometric.BiometricAuthManager
 import com.example.todolist.authentication.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +39,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     val uiState: StateFlow<AuthUiState> = _uiState
 
     init {
-        // Verificar si ya hay un token al iniciar el ViewModel
+        // Al iniciar, el ViewModel verifica si ya hay un token guardado.
+        // Si lo encuentra, el usuario se considera logueado.
         val token = tokenManager.getToken()
         if (token != null) {
             _uiState.value = _uiState.value.copy(
@@ -113,10 +114,14 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         return biometricAuthManager.canAuthenticate()
     }
 
+    /**
+     * Esta función ha sido corregida para aceptar FragmentActivity en lugar de MainActivity.
+     * Esto resuelve el error de incompatibilidad de tipos.
+     */
     fun authenticateWithBiometrics(activity: FragmentActivity, onAuthSuccess: () -> Unit) {
         biometricAuthManager.showBiometricPrompt(
             activity,
-            onSuccess = {
+            onSuccess = { // Corregido: la función onSuccess ahora acepta un parámetro
                 // Si la autenticación biométrica es exitosa, se considera que el usuario ha iniciado sesión.
                 // Podrías cargar el token aquí si es necesario, pero para esta lógica
                 // es suficiente con actualizar el estado.
@@ -131,6 +136,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /**
+     * Esta función es la clave para tu caso de uso.
+     * Al llamar a `logout()`, se elimina el token guardado y se reinicia el estado
+     * del ViewModel, lo que hará que la aplicación inicie sin sesión.
+     */
     fun logout() {
         tokenManager.clearToken()
         _uiState.value = AuthUiState() // Reinicia el estado del ViewModel

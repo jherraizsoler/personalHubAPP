@@ -1,11 +1,9 @@
 package com.example.todolist
 
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -16,8 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -27,10 +23,11 @@ import com.example.todolist.authentication.viewmodel.AuthViewModel
 import com.example.todolist.seccion.estudio.ui.EstudioScreen
 import com.example.todolist.seccion.finanzas.ui.FinanzasScreen
 import com.example.todolist.seccion.productividad.ProductivityNavHost
-import com.example.todolist.seccion.productividad.ProductivityScreen
-import com.example.todolist.seccion.productividad.data.repository.TodoRepository
 import com.example.todolist.seccion.salud.ui.SaludScreen
 import com.example.todolist.ui.theme.ToDoListTheme
+import androidx.fragment.app.FragmentActivity
+import android.os.Build
+import androidx.annotation.RequiresApi
 
 // Definir las rutas de nivel superior
 sealed class AppScreen(val route: String, val title: String, val icon: ImageVector) {
@@ -40,18 +37,40 @@ sealed class AppScreen(val route: String, val title: String, val icon: ImageVect
     object Estudio : AppScreen("estudio", "Estudio", Icons.Default.List)
 }
 
-class MainActivity : ComponentActivity() {
+// *** ¡La clave está aquí! Cambiamos de ComponentActivity a FragmentActivity. ***
+class MainActivity : FragmentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Usamos by viewModels() para obtener la instancia del ViewModel de forma más idiomática
+        val authViewModel: AuthViewModel by viewModels { AuthViewModel.Companion.Factory(this.application) }
+
+        // *** ¡El cambio clave está aquí! ***
+        // Llamamos a este método para forzar que el estado de login sea 'false'
+        // cada vez que la actividad se crea. Esto hace que la pantalla de autenticación
+        // se muestre y se active el prompt biométrico.
+        authViewModel.logout()
+
         setContent {
             ToDoListTheme {
-                // Obtiene una instancia del AuthViewModel
-                val authViewModel: AuthViewModel = viewModel(
-                    factory = AuthViewModel.Companion.Factory(this.application)
-                )
                 // Recolecta el estado de login del ViewModel
                 val uiState by authViewModel.uiState.collectAsState()
+
+                // Añadido para intentar la autenticación biométrica al inicio de la app.
+                // Usamos LaunchedEffect para que esta lógica se ejecute solo una vez
+                // al iniciar la composición de la MainActivity y el estado no esté logueado.
+                LaunchedEffect(key1 = Unit) {
+                    if (!uiState.isLoggedIn && authViewModel.hasBiometricCapability()) {
+                        authViewModel.authenticateWithBiometrics(
+                            // `this@MainActivity` es el FragmentActivity requerido.
+                            activity = this@MainActivity,
+                            onAuthSuccess = {
+                                // La lógica de tu ViewModel ya se encarga de actualizar el estado de login.
+                            }
+                        )
+                    }
+                }
 
                 // Usa la lógica condicional para decidir qué pantalla mostrar
                 if (uiState.isLoggedIn) {
@@ -60,11 +79,7 @@ class MainActivity : ComponentActivity() {
                 } else {
                     // Si no está logueado, muestra la pantalla de autenticación
                     AuthScreen(
-                        onAuthSuccess = {
-                            // Este callback se ejecuta al terminar la autenticación.
-                            // El estado del ViewModel ya se habrá actualizado,
-                            // lo que provocará que Compose redibuje y muestre AppNavigation.
-                        }
+                        authViewModel = authViewModel
                     )
                 }
             }

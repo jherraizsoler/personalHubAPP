@@ -1,8 +1,5 @@
 package com.example.todolist.authentication.view
 
-import android.app.Application
-import android.content.Context
-import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,47 +29,20 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todolist.authentication.viewmodel.AuthUiState
 import com.example.todolist.authentication.viewmodel.AuthViewModel
 
 /**
- * Función auxiliar para encontrar la FragmentActivity en la cadena de contexto.
- * Es necesaria para APIs como la de autenticación biométrica que requieren un FragmentActivity.
- */
-private fun findFragmentActivity(context: Context): FragmentActivity? {
-    if (context is FragmentActivity) {
-        return context
-    }
-    if (context is ContextWrapper) {
-        return findFragmentActivity(context.baseContext)
-    }
-    return null
-}
-
-/**
  * Pantalla de autenticación principal.
  *
- * @param onAuthSuccess Lambda que se ejecuta cuando la autenticación es exitosa.
  * @param authViewModel El ViewModel que maneja la lógica de autenticación.
  */
 @Composable
 fun AuthScreen(
-    onAuthSuccess: () -> Unit,
-    authViewModel: AuthViewModel = createAuthViewModel()
+    authViewModel: AuthViewModel
 ) {
     // Recolecta el estado de la UI del ViewModel
     val uiState by authViewModel.uiState.collectAsState()
-
-    // Obtiene el contexto actual de forma segura para encontrar la FragmentActivity.
-    // Usamos el helper findFragmentActivity para evitar la excepción ClassCastException.
-    val context = LocalContext.current
-    val fragmentActivity = findFragmentActivity(context)
-
-    // Lógica para navegar a la pantalla principal si el usuario ya está autenticado
-    if (uiState.isLoggedIn) {
-        onAuthSuccess()
-    }
 
     // Estado local para alternar entre login y registro
     var isRegisterMode by remember { mutableStateOf(false) }
@@ -125,25 +95,13 @@ fun AuthScreen(
 
             // Botón de autenticación biométrica (solo si el dispositivo es compatible)
             if (authViewModel.hasBiometricCapability()) {
-                // Pasamos el FragmentActivity encontrado, si existe.
                 BiometricAuthButton(
-                    onAuthSuccess = onAuthSuccess,
                     authViewModel = authViewModel,
-                    fragmentActivity = fragmentActivity,
                     isLoading = uiState.isLoading
                 )
             }
         }
     }
-}
-
-/**
- * Función auxiliar para crear el ViewModel. Esto ayuda a forzar la resolución de la referencia de la factoría.
- */
-@Composable
-fun createAuthViewModel(): AuthViewModel {
-    val application = LocalContext.current.applicationContext as Application
-    return viewModel(factory = AuthViewModel.Companion.Factory(application))
 }
 
 @Composable
@@ -185,22 +143,23 @@ fun AuthForm(
 
 @Composable
 fun BiometricAuthButton(
-    onAuthSuccess: () -> Unit,
     authViewModel: AuthViewModel,
-    fragmentActivity: FragmentActivity?,
     isLoading: Boolean
 ) {
+    val fragmentActivity = LocalContext.current as? FragmentActivity
+
     ElevatedButton(
-        // Deshabilita el botón si no se puede encontrar la FragmentActivity.
-        onClick = { if (fragmentActivity != null) authViewModel.authenticateWithBiometrics(fragmentActivity, onAuthSuccess) },
+        onClick = {
+            if (fragmentActivity != null) {
+                // Ya no necesitamos un onAuthSuccess aquí, porque el MainActivity
+                // se encarga de reaccionar al cambio en el estado del ViewModel.
+                authViewModel.authenticateWithBiometrics(fragmentActivity, onAuthSuccess = {})
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
         enabled = !isLoading && fragmentActivity != null
     ) {
-        // Usa un icono para la huella dactilar, si lo tienes disponible
-        // Icon(painter = painterResource(id = R.drawable.ic_fingerprint), contentDescription = "Huella dactilar")
         Text(text = "Iniciar Sesión con Huella Dactilar")
     }
 }
-
-
 
