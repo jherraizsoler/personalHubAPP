@@ -77,8 +77,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val context = LocalContext.current
-    val appRepository = remember { TodoRepository(context) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -116,9 +114,9 @@ fun AppNavigation() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppScreen.Productivity.route) {
+                // Ahora la llamada es correcta, sin el parámetro appRepository.
                 ProductivityNavHost(
-                    parentNavController = navController,
-                    appRepository = appRepository
+                    parentNavController = navController
                 )
             }
             composable(AppScreen.Finanzas.route) {

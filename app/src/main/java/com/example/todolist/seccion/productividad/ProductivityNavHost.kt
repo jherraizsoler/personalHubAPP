@@ -3,6 +3,7 @@ package com.example.todolist.seccion.productividad
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -10,7 +11,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.todolist.seccion.productividad.data.repository.TodoRepository
 import com.example.todolist.seccion.productividad.ui.MainScreen
 import com.example.todolist.seccion.productividad.ui.composables.HistoryScreens
 import com.example.todolist.seccion.productividad.viewmodel.ProductivityViewModel
@@ -25,10 +25,13 @@ sealed class ProductivityScreen(val route: String) {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ProductivityNavHost(parentNavController: NavController, appRepository: TodoRepository) {
+// Se ha eliminado el parámetro 'appRepository' de la firma de la función.
+fun ProductivityNavHost(parentNavController: NavController) {
     val productivityNavController = rememberNavController()
+    val context = LocalContext.current
+
     val todoViewModel: ProductivityViewModel = viewModel(
-        factory = ProductivityViewModelFactory(appRepository)
+        factory = ProductivityViewModelFactory(context)
     )
 
     NavHost(

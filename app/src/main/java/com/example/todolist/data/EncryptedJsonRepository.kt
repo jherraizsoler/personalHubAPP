@@ -12,14 +12,21 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 
+// Cifra el archivo
 val json = Json { prettyPrint = true }
 val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
 /**
  * Cifra y guarda un objeto en un archivo JSON seguro.
+ * CORREGIDO: Elimina el archivo existente antes de guardar para evitar el error.
  */
 inline suspend fun <reified T : Any> saveEncryptedData(context: Context, filename: String, data: T) {
     val file = File(context.filesDir, filename)
+    // Elimina el archivo existente si existe para evitar el error de "output file already exists".
+    if (file.exists()) {
+        file.delete()
+    }
+
     val encryptedFile = EncryptedFile.Builder(
         file,
         context,
@@ -41,12 +48,14 @@ inline suspend fun <reified T : Any> saveEncryptedData(context: Context, filenam
 
 /**
  * Carga y descifra datos desde un archivo JSON seguro.
+ * CORREGIDO: No sobrescribe el archivo si no existe o si está corrupto.
  */
 inline suspend fun <reified T : Any> loadEncryptedData(context: Context, filename: String, defaultValue: T): T {
     val file = File(context.filesDir, filename)
 
+    // Solo intenta leer el archivo si existe.
     if (!file.exists()) {
-        saveEncryptedData(context, filename, defaultValue)
+        // Si no existe, simplemente retorna el valor por defecto sin tocar el disco.
         return defaultValue
     }
 
@@ -70,8 +79,9 @@ inline suspend fun <reified T : Any> loadEncryptedData(context: Context, filenam
             json.decodeFromString<T>(jsonString)
         }
     } catch (e: Exception) {
+        // Si hay un error al descifrar o leer el archivo (por corrupción),
+        // simplemente retorna el valor por defecto sin modificar el archivo.
         e.printStackTrace()
-        saveEncryptedData(context, filename, defaultValue)
         defaultValue
     }
 }

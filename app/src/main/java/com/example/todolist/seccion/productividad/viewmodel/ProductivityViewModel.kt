@@ -1,8 +1,10 @@
 package com.example.todolist.seccion.productividad.viewmodel
 
+import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.todolist.seccion.productividad.data.Task
 import com.example.todolist.seccion.productividad.data.TaskType
@@ -14,7 +16,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 
-class ProductivityViewModel(private val repository: TodoRepository) : ViewModel() {
+class ProductivityViewModel(private val context: Context) : ViewModel() {
+
+    // Creamos la instancia del repositorio aquí, usando el viewModelScope
+    private val repository = TodoRepository(context, viewModelScope)
 
     val items: StateFlow<List<Task>> = repository.todos
         .stateIn(
@@ -35,7 +40,6 @@ class ProductivityViewModel(private val repository: TodoRepository) : ViewModel(
 
     fun addItem(name: String, categories: List<String>, type: TaskType, content: String = "") {
         viewModelScope.launch {
-            // Asegúrate de que aquí creas la nueva tarea con el contenido
             val newTask = Task(name = name, categories = categories, type = type, content = content)
             repository.addItem(newTask)
         }
@@ -90,5 +94,15 @@ class ProductivityViewModel(private val repository: TodoRepository) : ViewModel(
         viewModelScope.launch {
             repository.deleteCategory(category)
         }
+    }
+
+    companion object {
+        fun provideFactory(context: Context): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return ProductivityViewModel(context) as T
+                }
+            }
     }
 }

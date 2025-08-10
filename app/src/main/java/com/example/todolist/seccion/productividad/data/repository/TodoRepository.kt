@@ -1,21 +1,17 @@
 package com.example.todolist.seccion.productividad.data.repository
 
 import android.content.Context
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.example.todolist.data.loadEncryptedData
 import com.example.todolist.data.saveEncryptedData
 import com.example.todolist.seccion.productividad.data.Task
-import com.example.todolist.seccion.productividad.data.TaskType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
 
-class TodoRepository(val context: Context) {
+class TodoRepository(private val context: Context, private val coroutineScope: CoroutineScope) {
 
     private val FILENAME = "tasks.json"
 
@@ -23,7 +19,8 @@ class TodoRepository(val context: Context) {
     val todos: StateFlow<List<Task>> = _todos.asStateFlow()
 
     init {
-        CoroutineScope(Dispatchers.IO).launch {
+        // Carga las tareas al inicializar el repositorio usando el CoroutineScope inyectado
+        coroutineScope.launch(Dispatchers.IO) {
             loadTodos()
         }
     }
@@ -51,26 +48,6 @@ class TodoRepository(val context: Context) {
             _todos.value = updatedList
             saveTodos()
         }
-    }
-
-    // Esta función es opcional si updateTodo ya maneja el borrado suave
-    // Pero es una buena práctica para tener una función específica
-    @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun softDeleteTodo(task: Task) {
-        val updatedTask = task.copy(
-            isDeleted = true,
-            deletedAt = Instant.now().toString()
-        )
-        updateItem(updatedTask)
-    }
-
-    // Esta función restaurará una tarea borrada
-    suspend fun restoreTodo(task: Task) {
-        val updatedTask = task.copy(
-            isDeleted = false,
-            deletedAt = null
-        )
-        updateItem(updatedTask)
     }
 
     // Esta función eliminará la tarea permanentemente
