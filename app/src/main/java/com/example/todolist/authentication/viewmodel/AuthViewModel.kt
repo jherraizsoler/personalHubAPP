@@ -3,8 +3,9 @@ package com.example.todolist.authentication.viewmodel
 import android.app.Application
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.todolist.authentication.AuthResponse
 import com.example.todolist.authentication.BiometricAuthManager
 import com.example.todolist.authentication.LoginRequest
 import com.example.todolist.authentication.RegisterRequest
@@ -14,6 +15,18 @@ import com.example.todolist.authentication.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+// Define el estado de la UI para el login, registro, etc.
+data class AuthUiState(
+    val username: String = "",
+    val password: String = "",
+    val isLoading: Boolean = false,
+    val isLoggedIn: Boolean = false,
+    val isRegistered: Boolean = false,
+    val token: String? = null,
+    val message: String? = null,
+    val error: String? = null
+)
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -100,13 +113,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         return biometricAuthManager.canAuthenticate()
     }
 
-    fun authenticateWithBiometrics(activity: FragmentActivity) {
+    fun authenticateWithBiometrics(activity: FragmentActivity, onAuthSuccess: () -> Unit) {
         biometricAuthManager.showBiometricPrompt(
             activity,
             onSuccess = {
-                _uiState.value = _uiState.value.copy(
-                    isLoggedIn = true
-                )
+                // Si la autenticación biométrica es exitosa, se considera que el usuario ha iniciado sesión.
+                // Podrías cargar el token aquí si es necesario, pero para esta lógica
+                // es suficiente con actualizar el estado.
+                _uiState.value = _uiState.value.copy(isLoggedIn = true)
+                onAuthSuccess()
             },
             onError = { errorCode, errString ->
                 _uiState.value = _uiState.value.copy(
@@ -120,15 +135,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         tokenManager.clearToken()
         _uiState.value = AuthUiState() // Reinicia el estado del ViewModel
     }
-}
 
-data class AuthUiState(
-    val username: String = "",
-    val password: String = "",
-    val isLoading: Boolean = false,
-    val isLoggedIn: Boolean = false,
-    val isRegistered: Boolean = false,
-    val token: String? = null,
-    val message: String? = null,
-    val error: String? = null
-)
+    companion object {
+        class Factory(private val application: Application) : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(AuthViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return AuthViewModel(application) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
+}

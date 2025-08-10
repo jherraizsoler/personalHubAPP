@@ -1,8 +1,11 @@
+// Archivo build.gradle.kts actualizado para una aplicación de Android con Compose.
+// Se han eliminado las dependencias de escritorio que causaban conflictos de clases duplicadas.
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     // Plugins aplicados desde el archivo de la raíz
-     id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -40,9 +43,10 @@ android {
     buildFeatures {
         compose = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.6.0"
-    }
+    // Este bloque ya no es necesario, el plugin de Kotlin Compose maneja la versión automáticamente.
+    // composeOptions {
+    //     kotlinCompilerExtensionVersion = "1.6.0"
+    // }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -52,42 +56,42 @@ android {
 }
 
 dependencies {
-    // Dependencias principales
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
-    implementation("androidx.activity:activity-compose:1.9.0")
+    // Se ha eliminado la dependencia de escritorio 'ui-desktop' que causaba el conflicto.
+
+    // Dependencias principales de Compose para Android.
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended:1.6.8")
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.3")
+    implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
 
-    // Retrofit se encargará de las peticiones de red
+    // Retrofit y OkHttp
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    // converter-gson de la conversión de JSON
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-    // okhttp para los logs de las peticiones.
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0")
 
-    // Jetpack Security Almacenar de forma segura en el dispositivo JWT
+    // Jetpack Security y Biometrics
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.biometric:biometric:1.1.0")
 
-    // Dependencias para markdown Texto enriquecido
+    // Dependencias para Markdown Texto enriquecido
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:0.16.0")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:0.16.0")
 
-    // Jetpack Biometric autenciación por huella dactilar
-    implementation("androidx.biometric:biometric:1.1.0")
-
-
-    implementation("androidx.compose.material:material-icons-extended:1.6.8")
     // Dependencia para la serialización JSON de Kotlin
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Dependencias del catálogo de versiones (libs.versions.toml)
+    // Se ha eliminado una referencia duplicada a `foundation.layout.android`.
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.navigation.compose.android)
     implementation(libs.androidx.foundation.layout.android)
-    implementation(libs.androidx.foundation.layout.android)
+    implementation(libs.espresso.core)
 
     // Dependencias de prueba
     testImplementation("junit:junit:4.13.2")

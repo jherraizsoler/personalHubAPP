@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -16,10 +17,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.todolist.authentication.view.AuthScreen
+import com.example.todolist.authentication.viewmodel.AuthViewModel
 import com.example.todolist.seccion.estudio.ui.EstudioScreen
 import com.example.todolist.seccion.finanzas.ui.FinanzasScreen
 import com.example.todolist.seccion.productividad.ProductivityNavHost
@@ -29,7 +33,6 @@ import com.example.todolist.seccion.salud.ui.SaludScreen
 import com.example.todolist.ui.theme.ToDoListTheme
 
 // Definir las rutas de nivel superior
-// Define tus pantallas principales de la aplicación
 sealed class AppScreen(val route: String, val title: String, val icon: ImageVector) {
     object Productivity : AppScreen("productivity", "Productividad", Icons.Default.CheckCircle)
     object Finanzas : AppScreen("finanzas", "Finanzas", Icons.Default.MonetizationOn)
@@ -43,7 +46,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ToDoListTheme {
-                AppNavigation()
+                // Obtiene una instancia del AuthViewModel
+                val authViewModel: AuthViewModel = viewModel(
+                    factory = AuthViewModel.Companion.Factory(this.application)
+                )
+                // Recolecta el estado de login del ViewModel
+                val uiState by authViewModel.uiState.collectAsState()
+
+                // Usa la lógica condicional para decidir qué pantalla mostrar
+                if (uiState.isLoggedIn) {
+                    // Si el usuario está logueado, muestra la pantalla principal de la app
+                    AppNavigation()
+                } else {
+                    // Si no está logueado, muestra la pantalla de autenticación
+                    AuthScreen(
+                        onAuthSuccess = {
+                            // Este callback se ejecuta al terminar la autenticación.
+                            // El estado del ViewModel ya se habrá actualizado,
+                            // lo que provocará que Compose redibuje y muestre AppNavigation.
+                        }
+                    )
+                }
             }
         }
     }
@@ -75,7 +98,15 @@ fun AppNavigation() {
             AppTopBar(
                 navController = navController,
                 currentScreen = currentScreen,
-                onNavigate = { screen -> navController.navigate(screen.route) }
+                onNavigate = { screen ->
+                    navController.navigate(screen.route) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         }
     ) { innerPadding ->
